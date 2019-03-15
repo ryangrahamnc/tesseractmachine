@@ -30,7 +30,6 @@ router.post('/ocrFile', upload.single('file'), autoReap, utils.asyncMiddleware(a
         start: Date.now(),
         end: null,
     };
-    console.log(req.file)
     var fileName = req.file.path;
 
     var result = await ocr(fileName);
@@ -46,7 +45,6 @@ router.post('/ocrFile', upload.single('file'), autoReap, utils.asyncMiddleware(a
         result,
     };
     lastOutput = out;
-    console.log(11111, out)
     res.json(out);
 }));
 
@@ -62,9 +60,19 @@ var ocr = async(fileName)=>{
 };
 
 var convertOutput = async(str)=>{
-    str = str.replace(/['"]/g, '\\$1');
+    str = _.map(str.split('\n'), (line)=>{
+        var parts = line.split('\t');
+        var last = _.last(parts);
+        if(last.length > 0){
+            last = last.replace(/["\\]/g, (a)=>{ return `\\${a}`; });
+            last = `"${last}"`;
+        }
+        parts[parts.length - 1] = last;
+        return parts.join('\t');
+    }).join('\n');
     return csvParse(str, {
         delimiter: '\t',
+        escape: '\\',
         columns: true,
         skip_empty_lines: true,
     });

@@ -120,14 +120,13 @@ var upload = multer({
     }
 });
 
-router.post('/getImageOcrData/viaUpload', upload.single('file'), autoReap, utils.asyncMiddleware(async(req, res, next)=>{
+router.post('/getImageOcrData/viaUpload', upload.single('file'), autoReap, async(req, res, next)=>{
     var file = req.file;
     var ocrData = await getOcrData(file.path);
-    ocrData = await normalizeOcrData(ocrData);
     res.json({
         ocrData,
     });
-}));
+});
 ```
 
 Client (requires jquery):

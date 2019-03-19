@@ -69,3 +69,81 @@ If loads, server is running
 <http://localhost:1120/last>
 
 For use if you just did a curl command and you want to open the output in your browser for easier visualization
+
+## Push to kube
+
+An example kube deployment+service is available in `examples/kube/`.
+
+## Issue command from nodejs via request-promise
+```
+var getOcrData = async(fileName)=>{
+    var url = `http://localhost:1120/ocrFile`;
+    var options = {
+        url,
+        method: 'POST',
+        formData: {
+            file: fs.createReadStream(fileName),
+        },
+        json: true,
+    };
+    var out = await request(options);
+    return out.result;
+};
+```
+
+## Allow uploads on an expressjs router and return OCR data 
+
+Server:
+```
+var tesseractMachineUrlPort = 'http://localhost:1120';
+ 
+var getOcrData = async(fileName)=>{
+    var url = `${tesseractMachineUrlPort}/ocrFile`;
+    var options = {
+        url,
+        method: 'POST',
+        formData: {
+            file: fs.createReadStream(fileName),
+        },
+        json: true,
+    };
+    var out = await request(options);
+    return out.result;
+};
+
+var multer = require('multer');
+var autoReap = require('multer-autoreap');
+var upload = multer({
+    dest: './tmp',
+    limits: {
+        fileSize: 1 * 1024 * 1024,
+    }
+});
+
+router.post('/getImageOcrData/viaUpload', upload.single('file'), autoReap, utils.asyncMiddleware(async(req, res, next)=>{
+    var file = req.file;
+    var ocrData = await getOcrData(file.path);
+    ocrData = await normalizeOcrData(ocrData);
+    res.json({
+        ocrData,
+    });
+}));
+```
+
+Client (requires jquery):
+```
+var getImgOcrData = async(blob)=>{
+    var fd = new FormData();
+    fd.append('file', blob);
+    var url = `/getImageOcrData/viaUpload`;
+    var result = await $.ajax({
+        type: 'POST',
+        url,
+        data: fd,
+        processData: false,
+        contentType: false,
+        json: true,
+    });
+    return result.ocrData;
+};
+```
